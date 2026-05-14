@@ -21,17 +21,21 @@ function Index() {
           Descubra, organize e acompanhe suas leituras
         </h1>
         <p className="mt-5 text-base text-muted-foreground sm:text-lg">
-          Pesquise milhões de livros via Google Books, monte sua estante e marque o status
-          de cada leitura — tudo persistido no seu navegador.
+          Pesquise milhões de livros via Google Books, monte sua estante e marque o status de cada
+          leitura — tudo persistido no seu navegador.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           {token ? (
             <>
               <Button asChild size="lg" className="min-h-11">
-                <Link to="/search"><Search aria-hidden="true" /> Começar a explorar</Link>
+                <Link to="/search">
+                  <Search aria-hidden="true" /> Começar a explorar
+                </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="min-h-11">
-                <Link to="/shelf"><Library aria-hidden="true" /> Ver minha estante</Link>
+                <Link to="/shelf">
+                  <Library aria-hidden="true" /> Ver minha estante
+                </Link>
               </Button>
             </>
           ) : (

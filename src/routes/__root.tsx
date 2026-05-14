@@ -49,8 +49,8 @@ function NotFoundComponent() {
           Esta página não existe
         </h1>
         <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-          O endereço que você tentou abrir não foi encontrado. Talvez o link esteja
-          desatualizado, ou o livro tenha sido removido.
+          O endereço que você tentou abrir não foi encontrado. Talvez o link esteja desatualizado,
+          ou o livro tenha sido removido.
         </p>
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">

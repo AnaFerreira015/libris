@@ -40,7 +40,12 @@ function BookDetailsPage() {
   const setStatus = useShelfStore((s) => s.setStatus);
   const inShelf = Boolean(shelfBook);
 
-  const { data: book, isPending, isError, error } = useQuery({
+  const {
+    data: book,
+    isPending,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["books", "detail", bookId],
     queryFn: () => getBook(bookId),
     staleTime: 5 * 60_000,
@@ -58,7 +63,12 @@ function BookDetailsPage() {
 
   return (
     <article className="mx-auto max-w-5xl px-4 py-8">
-      <Button variant="ghost" size="sm" onClick={() => router.history.back()} className="mb-6 min-h-11">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.history.back()}
+        className="mb-6 min-h-11"
+      >
         <ArrowLeft aria-hidden="true" /> Voltar
       </Button>
 
@@ -79,7 +89,10 @@ function BookDetailsPage() {
             ) : (
               <>
                 <div className="rounded-md border border-border bg-card p-3">
-                  <label htmlFor="status-select" className="text-xs font-medium text-muted-foreground">
+                  <label
+                    htmlFor="status-select"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Status
                   </label>
                   <Select
@@ -124,9 +137,7 @@ function BookDetailsPage() {
         <div>
           <p className="text-sm text-muted-foreground">{book.authors.join(", ")}</p>
           <h1 className="mt-1 font-serif text-3xl font-semibold text-foreground">{book.title}</h1>
-          {book.subtitle && (
-            <p className="mt-1 text-lg text-muted-foreground">{book.subtitle}</p>
-          )}
+          {book.subtitle && <p className="mt-1 text-lg text-muted-foreground">{book.subtitle}</p>}
 
           {book.categories.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5">

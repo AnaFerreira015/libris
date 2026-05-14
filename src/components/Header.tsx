@@ -76,7 +76,10 @@ export function Header() {
       </div>
 
       {token && (
-        <nav aria-label="Principal mobile" className="flex gap-1 border-t border-border px-4 py-2 sm:hidden">
+        <nav
+          aria-label="Principal mobile"
+          className="flex gap-1 border-t border-border px-4 py-2 sm:hidden"
+        >
           <Button asChild variant="ghost" size="sm" className="flex-1">
             <Link to="/search">
               <Search aria-hidden="true" /> Descobrir

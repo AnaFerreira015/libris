@@ -3,7 +3,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Search as SearchIcon, ChevronLeft, ChevronRight, Loader2, BookmarkPlus, BookmarkCheck } from "lucide-react";
+import {
+  Search as SearchIcon,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  BookmarkPlus,
+  BookmarkCheck,
+} from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -73,7 +80,9 @@ function SearchPage() {
     return Math.max(1, Math.ceil(cap / PAGE_SIZE));
   }, [data]);
 
-  const update = (patch: Partial<{ q: string; page: number; printType: string; orderBy: string }>) =>
+  const update = (
+    patch: Partial<{ q: string; page: number; printType: string; orderBy: string }>,
+  ) =>
     navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, ...patch }), replace: true });
 
   return (

@@ -29,12 +29,7 @@ import {
 } from "@/components/ui/table";
 import { BookCover } from "@/components/BookCover";
 import { EmptyState } from "@/components/EmptyState";
-import {
-  STATUS_LABEL,
-  type ShelfBook,
-  type ShelfStatus,
-  useShelfStore,
-} from "@/stores/shelf";
+import { STATUS_LABEL, type ShelfBook, type ShelfStatus, useShelfStore } from "@/stores/shelf";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/shelf")({
@@ -213,7 +208,12 @@ function ShelfPage() {
                     const canSort = header.column.getCanSort();
                     const sorted = header.column.getIsSorted();
                     return (
-                      <TableHead key={header.id} aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"}>
+                      <TableHead
+                        key={header.id}
+                        aria-sort={
+                          sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"
+                        }
+                      >
                         {canSort ? (
                           <button
                             type="button"
@@ -221,9 +221,15 @@ function ShelfPage() {
                             className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary"
                           >
                             {flexRender(header.column.columnDef.header, header.getContext())}
-                            {sorted === "asc" && <ArrowUp aria-hidden="true" className="size-3.5" />}
-                            {sorted === "desc" && <ArrowDown aria-hidden="true" className="size-3.5" />}
-                            {!sorted && <ArrowUpDown aria-hidden="true" className="size-3.5 opacity-50" />}
+                            {sorted === "asc" && (
+                              <ArrowUp aria-hidden="true" className="size-3.5" />
+                            )}
+                            {sorted === "desc" && (
+                              <ArrowDown aria-hidden="true" className="size-3.5" />
+                            )}
+                            {!sorted && (
+                              <ArrowUpDown aria-hidden="true" className="size-3.5 opacity-50" />
+                            )}
                           </button>
                         ) : (
                           flexRender(header.column.columnDef.header, header.getContext())
