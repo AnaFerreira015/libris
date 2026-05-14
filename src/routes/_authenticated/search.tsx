@@ -1,0 +1,275 @@
+import { useMemo } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { Search as SearchIcon, ChevronLeft, ChevronRight, Loader2, BookmarkPlus, BookmarkCheck } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookCover } from "@/components/BookCover";
+import { EmptyState } from "@/components/EmptyState";
+import { useDebounce } from "@/lib/use-debounce";
+import { searchBooks, type OrderBy, type PrintType } from "@/lib/google-books";
+import { useShelfStore } from "@/stores/shelf";
+import { toast } from "sonner";
+
+const PAGE_SIZE = 12;
+
+const searchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int().min(1), 1).default(1),
+  printType: fallback(z.enum(["all", "books", "magazines"]), "all").default("all"),
+  orderBy: fallback(z.enum(["relevance", "newest"]), "relevance").default("relevance"),
+});
+
+export const Route = createFileRoute("/_authenticated/search")({
+  validateSearch: zodValidator(searchSchema),
+  head: () => ({
+    meta: [
+      { title: "Descobrir livros — Libris" },
+      { name: "description", content: "Busque livros via Google Books e adicione à sua estante." },
+    ],
+  }),
+  component: SearchPage,
+});
+
+function SearchPage() {
+  const { q, page, printType, orderBy } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const debouncedQ = useDebounce(q, 450);
+
+  const enabled = debouncedQ.trim().length > 1;
+  const startIndex = (page - 1) * PAGE_SIZE;
+
+  const { data, isFetching, isError, error, isPending } = useQuery({
+    queryKey: ["books", "search", debouncedQ, page, printType, orderBy],
+    queryFn: () =>
+      searchBooks({
+        query: debouncedQ,
+        startIndex,
+        maxResults: PAGE_SIZE,
+        printType: printType as PrintType,
+        orderBy: orderBy as OrderBy,
+      }),
+    enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+
+  const totalPages = useMemo(() => {
+    if (!data) return 1;
+    // Google Books costuma exagerar totalItems — limita para algo navegável.
+    const cap = Math.min(data.totalItems, 200);
+    return Math.max(1, Math.ceil(cap / PAGE_SIZE));
+  }, [data]);
+
+  const update = (patch: Partial<{ q: string; page: number; printType: string; orderBy: string }>) =>
+    navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, ...patch }), replace: true });
+
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-8">
+      <header className="mb-6">
+        <h1 className="font-serif text-3xl font-semibold text-foreground">Descobrir</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Pesquise por título, autor ou tema. Os resultados vêm da Google Books API.
+        </p>
+      </header>
+
+      <form
+        role="search"
+        aria-label="Buscar livros"
+        onSubmit={(e) => e.preventDefault()}
+        className="grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto]"
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="q" className="sr-only">
+            Termo de busca
+          </Label>
+          <div className="relative">
+            <SearchIcon
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              id="q"
+              value={q}
+              onChange={(e) => update({ q: e.target.value, page: 1 })}
+              placeholder="Ex: Clarice Lispector, Dom Casmurro…"
+              className="min-h-11 pl-9"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="printType" className="text-xs text-muted-foreground">
+            Tipo
+          </Label>
+          <Select value={printType} onValueChange={(v) => update({ printType: v, page: 1 })}>
+            <SelectTrigger id="printType" className="min-h-11 min-w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="books">Livros</SelectItem>
+              <SelectItem value="magazines">Revistas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="orderBy" className="text-xs text-muted-foreground">
+            Ordenar
+          </Label>
+          <Select value={orderBy} onValueChange={(v) => update({ orderBy: v, page: 1 })}>
+            <SelectTrigger id="orderBy" className="min-h-11 min-w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="relevance">Relevância</SelectItem>
+              <SelectItem value="newest">Mais recentes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </form>
+
+      <div aria-live="polite" aria-busy={isFetching} className="mt-6">
+        {!enabled && (
+          <EmptyState
+            icon={<SearchIcon className="size-8" />}
+            title="Digite algo para começar"
+            description="Pelo menos 2 caracteres. A busca é feita automaticamente."
+          />
+        )}
+
+        {enabled && (isPending || (isFetching && !data)) && <ResultsGridSkeleton />}
+
+        {isError && (
+          <EmptyState
+            title="Não foi possível buscar"
+            description={(error as Error)?.message ?? "Tente novamente em instantes."}
+          />
+        )}
+
+        {enabled && data && data.items.length === 0 && (
+          <EmptyState
+            title="Nenhum resultado"
+            description={`Não encontramos livros para "${debouncedQ}".`}
+          />
+        )}
+
+        {data && data.items.length > 0 && (
+          <>
+            <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                Página {page} de {totalPages}
+                {isFetching && (
+                  <Loader2 className="ml-2 inline size-3 animate-spin" aria-label="Atualizando" />
+                )}
+              </span>
+            </div>
+
+            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+              {data.items.map((book) => (
+                <BookGridItem key={book.id} book={book} />
+              ))}
+            </ul>
+
+            <nav aria-label="Paginação" className="mt-8 flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => update({ page: Math.max(1, page - 1) })}
+                disabled={page <= 1}
+                className="min-h-11"
+              >
+                <ChevronLeft aria-hidden="true" /> Anterior
+              </Button>
+              <span className="px-3 text-sm text-muted-foreground" aria-current="page">
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => update({ page: Math.min(totalPages, page + 1) })}
+                disabled={page >= totalPages}
+                className="min-h-11"
+              >
+                Próxima <ChevronRight aria-hidden="true" />
+              </Button>
+            </nav>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ResultsGridSkeleton() {
+  return (
+    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4" aria-hidden="true">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <li key={i} className="space-y-2">
+          <Skeleton className="aspect-[2/3] w-full rounded-md" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-3 w-3/5" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function BookGridItem({ book }: { book: import("@/lib/google-books").Book }) {
+  const inShelf = useShelfStore((s) => s.books.some((b) => b.id === book.id));
+  const add = useShelfStore((s) => s.add);
+  const remove = useShelfStore((s) => s.remove);
+
+  return (
+    <li className="group rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-card">
+      <Link
+        to="/book/$bookId"
+        params={{ bookId: book.id }}
+        className="block focus-visible:outline-none"
+        aria-label={`Ver detalhes de ${book.title}`}
+      >
+        <BookCover src={book.thumbnail} title={book.title} />
+        <h3 className="mt-3 line-clamp-2 text-sm font-medium text-foreground">{book.title}</h3>
+        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+          {book.authors.join(", ")}
+        </p>
+      </Link>
+      <Button
+        size="sm"
+        variant={inShelf ? "secondary" : "outline"}
+        className="mt-2 w-full min-h-9"
+        onClick={() => {
+          if (inShelf) {
+            remove(book.id);
+            toast.success("Removido da estante");
+          } else {
+            add(book);
+            toast.success("Adicionado à estante");
+          }
+        }}
+      >
+        {inShelf ? (
+          <>
+            <BookmarkCheck aria-hidden="true" /> Na estante
+          </>
+        ) : (
+          <>
+            <BookmarkPlus aria-hidden="true" /> Adicionar
+          </>
+        )}
+      </Button>
+    </li>
+  );
+}
