@@ -45,6 +45,24 @@ interface RawVolume {
   };
 }
 
+interface ApiErrorPayload {
+  error?: {
+    message?: string;
+    status?: string;
+  };
+}
+
+export class GoogleBooksApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly retryAfter?: string | null,
+  ) {
+    super(message);
+    this.name = "GoogleBooksApiError";
+  }
+}
+
 export function mapVolume(raw: RawVolume): Book {
   const v = raw.volumeInfo ?? {};
   // upgrade http→https para evitar mixed content
@@ -77,11 +95,40 @@ export interface SearchResult {
 
 const BASE = "https://www.googleapis.com/books/v1/volumes";
 const GOOGLE_BOOKS_API_KEY = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY as string | undefined;
+const SEARCH_FIELDS = [
+  "totalItems",
+  "items(id,volumeInfo(title,subtitle,authors,publisher,publishedDate,categories,imageLinks,language,previewLink,infoLink))",
+].join(",");
 
 function appendApiKey(url: URL) {
   if (GOOGLE_BOOKS_API_KEY) {
     url.searchParams.set("key", GOOGLE_BOOKS_API_KEY);
   }
+}
+
+async function readGoogleBooksError(res: Response): Promise<GoogleBooksApiError> {
+  let apiMessage: string | undefined;
+
+  try {
+    const data = (await res.json()) as ApiErrorPayload;
+    apiMessage = data.error?.message;
+  } catch {
+    apiMessage = undefined;
+  }
+
+  if (res.status === 429) {
+    return new GoogleBooksApiError(
+      "A Google Books API limitou temporariamente as buscas. Aguarde alguns instantes e tente novamente. Para testes mais estáveis, configure VITE_GOOGLE_BOOKS_API_KEY no arquivo .env.",
+      res.status,
+      res.headers.get("Retry-After"),
+    );
+  }
+
+  return new GoogleBooksApiError(
+    apiMessage ?? `Falha na comunicação com a Google Books API (${res.status})`,
+    res.status,
+    res.headers.get("Retry-After"),
+  );
 }
 
 export interface SearchParams {
@@ -99,18 +146,20 @@ export async function searchBooks({
   printType = "all",
   orderBy = "relevance",
 }: SearchParams): Promise<SearchResult> {
-  if (!query.trim()) return { items: [], totalItems: 0 };
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) return { items: [], totalItems: 0 };
 
   const url = new URL(BASE);
-  url.searchParams.set("q", query);
+  url.searchParams.set("q", normalizedQuery);
   url.searchParams.set("startIndex", String(startIndex));
   url.searchParams.set("maxResults", String(maxResults));
   url.searchParams.set("printType", printType);
   url.searchParams.set("orderBy", orderBy);
+  url.searchParams.set("fields", SEARCH_FIELDS);
   appendApiKey(url);
 
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Falha na busca (${res.status})`);
+  if (!res.ok) throw await readGoogleBooksError(res);
   const data = (await res.json()) as { items?: RawVolume[]; totalItems?: number };
 
   return {
@@ -124,7 +173,7 @@ export async function getBook(id: string): Promise<Book> {
   appendApiKey(url);
 
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Livro não encontrado (${res.status})`);
+  if (!res.ok) throw await readGoogleBooksError(res);
   const data = (await res.json()) as RawVolume;
   return mapVolume(data);
 }

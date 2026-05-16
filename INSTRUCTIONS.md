@@ -39,6 +39,10 @@ VITE_GOOGLE_BOOKS_API_KEY=sua_chave_aqui
 npm run dev
 ```
 
+## Erro 429 / Too Many Requests
+
+Se a busca retornar `Too Many Requests`, crie um arquivo `.env` a partir do `.env.example` e informe uma chave em `VITE_GOOGLE_BOOKS_API_KEY`. A aplicação também evita retries desnecessários em respostas 429, aumenta o debounce da busca e mantém cache por mais tempo para reduzir chamadas repetidas durante testes manuais.
+
 A aplicação ficará disponível em:
 
 ```txt

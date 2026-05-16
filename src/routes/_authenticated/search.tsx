@@ -26,11 +26,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookCover } from "@/components/BookCover";
 import { EmptyState } from "@/components/EmptyState";
 import { useDebounce } from "@/lib/use-debounce";
-import { searchBooks, type OrderBy, type PrintType } from "@/lib/google-books";
+import { GoogleBooksApiError, searchBooks, type OrderBy, type PrintType } from "@/lib/google-books";
 import { useShelfStore } from "@/stores/shelf";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 12;
+const MIN_SEARCH_LENGTH = 3;
+
+type SearchState = {
+  q?: string;
+  page?: number;
+  printType?: PrintType;
+  orderBy?: OrderBy;
+};
 
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
@@ -53,9 +61,9 @@ export const Route = createFileRoute("/_authenticated/search")({
 function SearchPage() {
   const { q, page, printType, orderBy } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const debouncedQ = useDebounce(q, 450);
+  const debouncedQ = useDebounce(q, 800);
 
-  const enabled = debouncedQ.trim().length > 1;
+  const enabled = debouncedQ.trim().length >= MIN_SEARCH_LENGTH;
   const startIndex = (page - 1) * PAGE_SIZE;
 
   const { data, isFetching, isError, error, isPending } = useQuery({
@@ -70,20 +78,23 @@ function SearchPage() {
       }),
     enabled,
     placeholderData: keepPreviousData,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: (failureCount, queryError) => {
+      if (queryError instanceof GoogleBooksApiError && queryError.status === 429) return false;
+      return failureCount < 1;
+    },
   });
 
   const totalPages = useMemo(() => {
     if (!data) return 1;
-    // Google Books costuma exagerar totalItems — limita para algo navegável.
     const cap = Math.min(data.totalItems, 200);
     return Math.max(1, Math.ceil(cap / PAGE_SIZE));
   }, [data]);
 
-  const update = (
-    patch: Partial<{ q: string; page: number; printType: string; orderBy: string }>,
-  ) =>
-    navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, ...patch }), replace: true });
+  const update = (patch: Partial<SearchState>) =>
+    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
@@ -124,7 +135,10 @@ function SearchPage() {
           <Label htmlFor="printType" className="text-xs text-muted-foreground">
             Tipo
           </Label>
-          <Select value={printType} onValueChange={(v) => update({ printType: v, page: 1 })}>
+          <Select
+            value={printType}
+            onValueChange={(v) => update({ printType: v as PrintType, page: 1 })}
+          >
             <SelectTrigger id="printType" className="min-h-11 min-w-32">
               <SelectValue />
             </SelectTrigger>
@@ -140,7 +154,7 @@ function SearchPage() {
           <Label htmlFor="orderBy" className="text-xs text-muted-foreground">
             Ordenar
           </Label>
-          <Select value={orderBy} onValueChange={(v) => update({ orderBy: v, page: 1 })}>
+          <Select value={orderBy} onValueChange={(v) => update({ orderBy: v as OrderBy, page: 1 })}>
             <SelectTrigger id="orderBy" className="min-h-11 min-w-36">
               <SelectValue />
             </SelectTrigger>
@@ -157,7 +171,7 @@ function SearchPage() {
           <EmptyState
             icon={<SearchIcon className="size-8" />}
             title="Digite algo para começar"
-            description="Pelo menos 2 caracteres. A busca é feita automaticamente."
+            description={`Digite pelo menos ${MIN_SEARCH_LENGTH} caracteres. A busca é feita automaticamente após uma breve pausa.`}
           />
         )}
 

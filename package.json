@@ -11,9 +11,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "coverage": "vitest run --coverage",
+    "test": "vitest run --config vitest.config.ts --dir src --pool=forks --maxWorkers=1 --minWorkers=1 --no-isolate --reporter=dot",
+    "test:watch": "vitest --config vitest.config.ts --pool=forks --maxWorkers=1 --minWorkers=1 --no-isolate --reporter=dot",
+    "coverage": "vitest run --config vitest.config.ts --coverage --dir src --pool=forks --maxWorkers=1 --minWorkers=1 --no-isolate --reporter=dot",
     "format": "prettier --write ."
   },
   "dependencies": {
