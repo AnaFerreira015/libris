@@ -109,60 +109,71 @@ function SearchPage() {
         role="search"
         aria-label="Buscar livros"
         onSubmit={(e) => e.preventDefault()}
-        className="grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto]"
+        className="rounded-xl border border-border bg-card p-5"
       >
-        <div className="space-y-1.5">
-          <Label htmlFor="q" className="sr-only">
-            Termo de busca
-          </Label>
-          <div className="relative">
-            <SearchIcon
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              id="q"
-              value={q}
-              onChange={(e) => update({ q: e.target.value, page: 1 })}
-              placeholder="Ex: Clarice Lispector, Dom Casmurro…"
-              className="min-h-11 pl-9"
-              autoFocus
-            />
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem_14rem]">
+          <div className="grid grid-rows-[1rem_3rem] gap-2">
+            <Label
+              htmlFor="q"
+              className="block text-xs font-medium leading-4 text-muted-foreground"
+            >
+              Buscar
+            </Label>
+            <div className="relative h-12">
+              <SearchIcon
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                id="q"
+                value={q}
+                onChange={(e) => update({ q: e.target.value, page: 1 })}
+                placeholder="Ex: Clarice Lispector, Dom Casmurro…"
+                className="h-12 pl-9"
+                autoFocus
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="printType" className="text-xs text-muted-foreground">
-            Tipo
-          </Label>
-          <Select
-            value={printType}
-            onValueChange={(v) => update({ printType: v as PrintType, page: 1 })}
-          >
-            <SelectTrigger id="printType" className="min-h-11 min-w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="books">Livros</SelectItem>
-              <SelectItem value="magazines">Revistas</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="grid grid-rows-[1rem_3rem] gap-2">
+            <Label
+              htmlFor="printType"
+              className="block text-xs font-medium leading-4 text-muted-foreground"
+            >
+              Tipo
+            </Label>
+            <Select
+              value={printType}
+              onValueChange={(v) => update({ printType: v as PrintType, page: 1 })}
+            >
+              <SelectTrigger id="printType" className="h-12 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="books">Livros</SelectItem>
+                <SelectItem value="magazines">Revistas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="orderBy" className="text-xs text-muted-foreground">
-            Ordenar
-          </Label>
-          <Select value={orderBy} onValueChange={(v) => update({ orderBy: v as OrderBy, page: 1 })}>
-            <SelectTrigger id="orderBy" className="min-h-11 min-w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="relevance">Relevância</SelectItem>
-              <SelectItem value="newest">Mais recentes</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid grid-rows-[1rem_3rem] gap-2">
+            <Label
+              htmlFor="orderBy"
+              className="block text-xs font-medium leading-4 text-muted-foreground"
+            >
+              Ordenar
+            </Label>
+            <Select value={orderBy} onValueChange={(v) => update({ orderBy: v as OrderBy, page: 1 })}>
+              <SelectTrigger id="orderBy" className="h-12 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Relevância</SelectItem>
+                <SelectItem value="newest">Mais recentes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </form>
 
