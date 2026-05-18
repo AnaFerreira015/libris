@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -33,6 +33,13 @@ import { toast } from "sonner";
 const PAGE_SIZE = 12;
 const MIN_SEARCH_LENGTH = 3;
 
+const SEARCH_DEFAULTS = {
+  q: "",
+  page: 1,
+  printType: "all",
+  orderBy: "relevance",
+} as const;
+
 type SearchState = {
   q?: string;
   page?: number;
@@ -42,13 +49,20 @@ type SearchState = {
 
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
-  page: fallback(z.number().int().min(1), 1).default(1),
-  printType: fallback(z.enum(["all", "books", "magazines"]), "all").default("all"),
-  orderBy: fallback(z.enum(["relevance", "newest"]), "relevance").default("relevance"),
+  page: fallback(z.number().int().min(1), SEARCH_DEFAULTS.page).default(SEARCH_DEFAULTS.page),
+  printType: fallback(z.enum(["all", "books", "magazines"]), SEARCH_DEFAULTS.printType).default(
+    SEARCH_DEFAULTS.printType,
+  ),
+  orderBy: fallback(z.enum(["relevance", "newest"]), SEARCH_DEFAULTS.orderBy).default(
+    SEARCH_DEFAULTS.orderBy,
+  ),
 });
 
 export const Route = createFileRoute("/_authenticated/search")({
   validateSearch: zodValidator(searchSchema),
+  search: {
+    middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
+  },
   head: () => ({
     meta: [
       { title: "Descobrir livros — Libris" },
@@ -130,6 +144,7 @@ function SearchPage() {
                 onChange={(e) => update({ q: e.target.value, page: 1 })}
                 placeholder="Ex: Clarice Lispector, Dom Casmurro…"
                 className="h-12 pl-9"
+                autoFocus
               />
             </div>
           </div>
@@ -200,6 +215,7 @@ function SearchPage() {
 
         {enabled && data && data.items.length === 0 && (
           <EmptyState
+            role="alert"
             title="Nenhum resultado"
             description={`Não encontramos livros para "${debouncedQ}".`}
           />
@@ -303,7 +319,7 @@ function BookGridItem({ book }: { book: import("@/lib/google-books").Book }) {
       >
         {inShelf ? (
           <>
-            <BookmarkCheck aria-hidden="true" /> Remover
+            <BookmarkCheck aria-hidden="true" /> Na estante
           </>
         ) : (
           <>
