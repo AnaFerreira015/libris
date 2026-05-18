@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createFileRoute, Link, stripSearchParams } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
 import {
   Search as SearchIcon,
   ChevronLeft,
@@ -40,23 +41,42 @@ const SEARCH_DEFAULTS = {
   orderBy: "relevance",
 } as const;
 
-type SearchState = {
-  q?: string;
+const printTypeSchema = z.enum(["all", "books", "magazines"]);
+const orderBySchema = z.enum(["relevance", "newest"]);
+
+const searchFiltersSchema = z.object({
+  q: z.string().max(120, "Use no máximo 120 caracteres."),
+  printType: printTypeSchema,
+  orderBy: orderBySchema,
+});
+
+type SearchFiltersFormValues = z.infer<typeof searchFiltersSchema>;
+
+type SearchState = Partial<SearchFiltersFormValues> & {
   page?: number;
-  printType?: PrintType;
-  orderBy?: OrderBy;
 };
 
 const searchSchema = z.object({
-  q: fallback(z.string(), "").default(""),
+  q: fallback(searchFiltersSchema.shape.q, "").default(""),
   page: fallback(z.number().int().min(1), SEARCH_DEFAULTS.page).default(SEARCH_DEFAULTS.page),
-  printType: fallback(z.enum(["all", "books", "magazines"]), SEARCH_DEFAULTS.printType).default(
+  printType: fallback(printTypeSchema, SEARCH_DEFAULTS.printType).default(
     SEARCH_DEFAULTS.printType,
   ),
-  orderBy: fallback(z.enum(["relevance", "newest"]), SEARCH_DEFAULTS.orderBy).default(
-    SEARCH_DEFAULTS.orderBy,
-  ),
+  orderBy: fallback(orderBySchema, SEARCH_DEFAULTS.orderBy).default(SEARCH_DEFAULTS.orderBy),
 });
+
+function formatFieldErrors(errors: unknown[]) {
+  return errors
+    .flatMap((error) => (Array.isArray(error) ? error : [error]))
+    .map((error) => {
+      if (typeof error === "string") return error;
+      if (error && typeof error === "object" && "message" in error) {
+        return String(error.message);
+      }
+      return "Valor inválido.";
+    })
+    .join(" ");
+}
 
 export const Route = createFileRoute("/_authenticated/search")({
   validateSearch: zodValidator(searchSchema),
@@ -110,6 +130,37 @@ function SearchPage() {
   const update = (patch: Partial<SearchState>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
 
+  const form = useForm({
+    defaultValues: {
+      q,
+      printType: printType as PrintType,
+      orderBy: orderBy as OrderBy,
+    } satisfies SearchFiltersFormValues,
+    validators: {
+      onChange: searchFiltersSchema,
+    },
+  });
+
+  useEffect(() => {
+    const nextValues: SearchFiltersFormValues = {
+      q,
+      printType: printType as PrintType,
+      orderBy: orderBy as OrderBy,
+    };
+
+    if (form.state.values.q !== nextValues.q) {
+      form.setFieldValue("q", nextValues.q);
+    }
+
+    if (form.state.values.printType !== nextValues.printType) {
+      form.setFieldValue("printType", nextValues.printType);
+    }
+
+    if (form.state.values.orderBy !== nextValues.orderBy) {
+      form.setFieldValue("orderBy", nextValues.orderBy);
+    }
+  }, [form, orderBy, printType, q]);
+
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
       <header className="mb-6">
@@ -122,74 +173,142 @@ function SearchPage() {
       <form
         role="search"
         aria-label="Buscar livros"
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
         className="rounded-xl border border-border bg-card p-5"
       >
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem_14rem]">
-          <div className="grid grid-rows-[1rem_3rem] gap-2">
-            <Label
-              htmlFor="q"
-              className="block text-xs font-medium leading-4 text-muted-foreground"
-            >
-              Buscar
-            </Label>
-            <div className="relative h-12">
-              <SearchIcon
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                id="q"
-                value={q}
-                onChange={(e) => update({ q: e.target.value, page: 1 })}
-                placeholder="Ex: Clarice Lispector, Dom Casmurro…"
-                className="h-12 pl-9"
-              />
-            </div>
-          </div>
+          <form.Field name="q">
+            {(field) => {
+              const error = formatFieldErrors(field.state.meta.errors);
 
-          <div className="grid grid-rows-[1rem_3rem] gap-2">
-            <Label
-              htmlFor="printType"
-              className="block text-xs font-medium leading-4 text-muted-foreground"
-            >
-              Tipo
-            </Label>
-            <Select
-              value={printType}
-              onValueChange={(v) => update({ printType: v as PrintType, page: 1 })}
-            >
-              <SelectTrigger id="printType" className="h-12 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="books">Livros</SelectItem>
-                <SelectItem value="magazines">Revistas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              return (
+                <div className="grid grid-rows-[1rem_3rem] gap-2">
+                  <Label
+                    htmlFor={field.name}
+                    className="block text-xs font-medium leading-4 text-muted-foreground"
+                  >
+                    Buscar
+                  </Label>
+                  <div className="relative h-12">
+                    <SearchIcon
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.handleChange(value);
+                        update({ q: value, page: 1 });
+                      }}
+                      placeholder="Ex: Clarice Lispector, Dom Casmurro…"
+                      className="h-12 pl-9"
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? `${field.name}-error` : undefined}
+                    />
+                  </div>
+                  {error && (
+                    <p id={`${field.name}-error`} role="alert" className="text-xs text-destructive">
+                      {error}
+                    </p>
+                  )}
+                </div>
+              );
+            }}
+          </form.Field>
 
-          <div className="grid grid-rows-[1rem_3rem] gap-2">
-            <Label
-              htmlFor="orderBy"
-              className="block text-xs font-medium leading-4 text-muted-foreground"
-            >
-              Ordenar
-            </Label>
-            <Select
-              value={orderBy}
-              onValueChange={(v) => update({ orderBy: v as OrderBy, page: 1 })}
-            >
-              <SelectTrigger id="orderBy" className="h-12 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="relevance">Relevância</SelectItem>
-                <SelectItem value="newest">Mais recentes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <form.Field name="printType">
+            {(field) => {
+              const error = formatFieldErrors(field.state.meta.errors);
+
+              return (
+                <div className="grid grid-rows-[1rem_3rem] gap-2">
+                  <Label
+                    htmlFor={field.name}
+                    className="block text-xs font-medium leading-4 text-muted-foreground"
+                  >
+                    Tipo
+                  </Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => {
+                      const nextValue = value as PrintType;
+                      field.handleChange(nextValue);
+                      update({ printType: nextValue, page: 1 });
+                    }}
+                  >
+                    <SelectTrigger
+                      id={field.name}
+                      className="h-12 w-full"
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? `${field.name}-error` : undefined}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="books">Livros</SelectItem>
+                      <SelectItem value="magazines">Revistas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {error && (
+                    <p id={`${field.name}-error`} role="alert" className="text-xs text-destructive">
+                      {error}
+                    </p>
+                  )}
+                </div>
+              );
+            }}
+          </form.Field>
+
+          <form.Field name="orderBy">
+            {(field) => {
+              const error = formatFieldErrors(field.state.meta.errors);
+
+              return (
+                <div className="grid grid-rows-[1rem_3rem] gap-2">
+                  <Label
+                    htmlFor={field.name}
+                    className="block text-xs font-medium leading-4 text-muted-foreground"
+                  >
+                    Ordenar
+                  </Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => {
+                      const nextValue = value as OrderBy;
+                      field.handleChange(nextValue);
+                      update({ orderBy: nextValue, page: 1 });
+                    }}
+                  >
+                    <SelectTrigger
+                      id={field.name}
+                      className="h-12 w-full"
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? `${field.name}-error` : undefined}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="relevance">Relevância</SelectItem>
+                      <SelectItem value="newest">Mais recentes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {error && (
+                    <p id={`${field.name}-error`} role="alert" className="text-xs text-destructive">
+                      {error}
+                    </p>
+                  )}
+                </div>
+              );
+            }}
+          </form.Field>
         </div>
       </form>
 
