@@ -61,7 +61,7 @@ function Index() {
           {
             icon: Sparkles,
             title: "Leve e acessível",
-            desc: "Tema claro/escuro, navegação por teclado e contraste AAA.",
+            desc: "Tema claro/escuro, navegação por teclado e bom contraste visual.",
           },
         ].map(({ icon: Icon, title, desc }) => (
           <div key={title} className="rounded-xl border border-border bg-card p-6 shadow-sm">

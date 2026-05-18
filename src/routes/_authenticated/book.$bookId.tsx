@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/book/$bookId")({
   component: BookDetailsPage,
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <EmptyState title="Não foi possível carregar" description={error.message} />
+      <EmptyState role="alert" title="Não foi possível carregar" description={error.message} />
     </div>
   ),
 });
@@ -56,7 +56,11 @@ function BookDetailsPage() {
   if (isError || !book) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12">
-        <EmptyState title="Livro não encontrado" description={(error as Error)?.message} />
+        <EmptyState
+          role="alert"
+          title="Livro não encontrado"
+          description={(error as Error)?.message}
+        />
       </div>
     );
   }
@@ -128,6 +132,7 @@ function BookDetailsPage() {
               <Button asChild variant="outline" className="w-full min-h-11">
                 <a href={book.previewLink} target="_blank" rel="noreferrer noopener">
                   <ExternalLink aria-hidden="true" /> Preview no Google Books
+                  <span className="sr-only"> abre em nova aba</span>
                 </a>
               </Button>
             )}

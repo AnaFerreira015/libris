@@ -130,7 +130,6 @@ function SearchPage() {
                 onChange={(e) => update({ q: e.target.value, page: 1 })}
                 placeholder="Ex: Clarice Lispector, Dom Casmurro…"
                 className="h-12 pl-9"
-                autoFocus
               />
             </div>
           </div>
@@ -164,7 +163,10 @@ function SearchPage() {
             >
               Ordenar
             </Label>
-            <Select value={orderBy} onValueChange={(v) => update({ orderBy: v as OrderBy, page: 1 })}>
+            <Select
+              value={orderBy}
+              onValueChange={(v) => update({ orderBy: v as OrderBy, page: 1 })}
+            >
               <SelectTrigger id="orderBy" className="h-12 w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -190,6 +192,7 @@ function SearchPage() {
 
         {isError && (
           <EmptyState
+            role="alert"
             title="Não foi possível buscar"
             description={(error as Error)?.message ?? "Tente novamente em instantes."}
           />
@@ -271,7 +274,7 @@ function BookGridItem({ book }: { book: import("@/lib/google-books").Book }) {
       <Link
         to="/book/$bookId"
         params={{ bookId: book.id }}
-        className="block focus-visible:outline-none"
+        className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={`Ver detalhes de ${book.title}`}
       >
         <BookCover src={book.thumbnail} title={book.title} />
@@ -284,6 +287,10 @@ function BookGridItem({ book }: { book: import("@/lib/google-books").Book }) {
         size="sm"
         variant={inShelf ? "secondary" : "outline"}
         className="mt-2 w-full min-h-9"
+        aria-label={
+          inShelf ? `Remover ${book.title} da estante` : `Adicionar ${book.title} à estante`
+        }
+        aria-pressed={inShelf}
         onClick={() => {
           if (inShelf) {
             remove(book.id);
@@ -296,7 +303,7 @@ function BookGridItem({ book }: { book: import("@/lib/google-books").Book }) {
       >
         {inShelf ? (
           <>
-            <BookmarkCheck aria-hidden="true" /> Na estante
+            <BookmarkCheck aria-hidden="true" /> Remover
           </>
         ) : (
           <>

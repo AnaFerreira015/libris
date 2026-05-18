@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { AriaRole, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -7,12 +7,20 @@ interface Props {
   description?: string;
   action?: ReactNode;
   className?: string;
+  role?: AriaRole;
 }
 
-export function EmptyState({ icon, title, description, action, className }: Props) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  className,
+  role = "status",
+}: Props) {
   return (
     <div
-      role="status"
+      role={role}
       className={cn(
         "flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/50 p-10 text-center",
         className,
