@@ -144,7 +144,6 @@ function SearchPage() {
                 onChange={(e) => update({ q: e.target.value, page: 1 })}
                 placeholder="Ex: Clarice Lispector, Dom Casmurro…"
                 className="h-12 pl-9"
-                autoFocus
               />
             </div>
           </div>
@@ -319,7 +318,7 @@ function BookGridItem({ book }: { book: import("@/lib/google-books").Book }) {
       >
         {inShelf ? (
           <>
-            <BookmarkCheck aria-hidden="true" /> Na estante
+            <BookmarkCheck aria-hidden="true" /> Remover da estante
           </>
         ) : (
           <>
