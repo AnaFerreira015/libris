@@ -6,10 +6,10 @@ O Libris é um gerenciador de biblioteca pessoal. Com ele, o usuário pode fazer
 
 ## Pré-requisitos
 
-- Node.js 20 ou superior.
-- npm, pnpm, yarn ou bun.
+- Node.js 22.12 ou superior.
+- npm.
 
-Os exemplos abaixo usam npm, mas o projeto também pode ser instalado com outro gerenciador de pacotes.
+> O projeto utiliza `package-lock.json`, portanto os comandos abaixo consideram npm como gerenciador de pacotes.
 
 ## Instalação
 
@@ -33,15 +33,13 @@ E preencha:
 VITE_GOOGLE_BOOKS_API_KEY=sua_chave_aqui
 ```
 
+O arquivo `.env` não deve ser versionado no Git.
+
 ## Desenvolvimento local
 
 ```bash
 npm run dev
 ```
-
-## Erro 429 / Too Many Requests
-
-Se a busca retornar `Too Many Requests`, crie um arquivo `.env` a partir do `.env.example` e informe uma chave em `VITE_GOOGLE_BOOKS_API_KEY`. A aplicação também evita retries desnecessários em respostas 429, aumenta o debounce da busca e mantém cache por mais tempo para reduzir chamadas repetidas durante testes manuais.
 
 A aplicação ficará disponível em:
 
@@ -49,15 +47,34 @@ A aplicação ficará disponível em:
 http://localhost:3000
 ```
 
+## Erro 429 / Too Many Requests
+
+Se a busca retornar `Too Many Requests`, crie um arquivo `.env` a partir do `.env.example` e informe uma chave em `VITE_GOOGLE_BOOKS_API_KEY`.
+
+A aplicação também reduz chamadas repetidas à API usando debounce no campo de busca, cache no TanStack Query e evitando retries desnecessários em respostas 429.
+
 ## Scripts úteis
 
 ```bash
 npm run lint        # Executa ESLint
 npm run typecheck   # Verifica tipos TypeScript
-npm run test        # Executa testes unitários
+npm run test        # Executa testes unitários e testes básicos de acessibilidade
+npm run test:watch  # Executa os testes em modo watch
 npm run coverage    # Executa testes com cobertura
 npm run build       # Gera build de produção e verifica tipos
 npm run preview     # Pré-visualiza o build
+npm run format      # Formata o projeto com Prettier
+```
+
+## Validação antes da entrega
+
+Antes de enviar o projeto, recomenda-se executar:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
 ```
 
 ## Fluxo de uso
@@ -66,9 +83,10 @@ npm run preview     # Pré-visualiza o build
 2. Informe qualquer e-mail válido.
 3. Informe uma senha com mais de 6 caracteres.
 4. Pesquise livros em `/search`.
-5. Adicione livros à estante.
-6. Acesse `/shelf` para alterar status, ordenar a tabela ou remover livros.
-7. Abra `/book/$bookId` para ver detalhes, sinopse, editora e link de preview.
+5. Use os filtros de tipo de impressão e ordenação, se desejar.
+6. Adicione livros à estante.
+7. Acesse `/shelf` para alterar status, ordenar a tabela ou remover livros.
+8. Abra `/book/$bookId` para ver detalhes, sinopse, editora e link de preview.
 
 ## Funcionalidades implementadas
 
@@ -77,7 +95,8 @@ npm run preview     # Pré-visualiza o build
 - Rotas protegidas para busca, estante e detalhes.
 - Busca na Google Books API com debounce.
 - Paginação usando `startIndex`.
-- Filtros por tipo de impressão e ordenação.
+- Filtros por tipo de impressão e ordenação com TanStack Form e Zod.
+- Sincronização dos filtros com a URL.
 - Estante persistida com Zustand.
 - Status de leitura: Quero Ler, Lendo e Concluído.
 - Tabela com TanStack Table e ordenação.
@@ -85,9 +104,11 @@ npm run preview     # Pré-visualiza o build
 - Tema claro/escuro persistido.
 - Estados de loading, erro e vazio.
 - Fallback para capas ausentes ou quebradas.
+- Cuidados de acessibilidade, como labels, foco visível, skip link e mensagens semânticas.
 - Testes unitários para validação, adapter e estante.
+- Testes básicos de acessibilidade com `jest-axe` e `axe-core`.
 
-## Entrega sugerida
+## Resolução e decisões tomadas
 
 O projeto foi desenvolvido como uma aplicação frontend para gerenciamento de uma biblioteca pessoal, permitindo que o usuário pesquise livros na Google Books API, visualize detalhes e salve itens em uma estante virtual persistida localmente.
 
@@ -104,3 +125,23 @@ Na interface, utilizei TailwindCSS e componentes baseados em shadcn/ui para mant
 Por fim, foram adicionados testes com Vitest para validar regras de negócio importantes, como validação do login, transformação dos dados da API e comportamento da estante. Também foram incluídos testes básicos de acessibilidade com `jest-axe` e `axe-core` em componentes reutilizáveis, ajudando a identificar problemas estruturais de acessibilidade durante o desenvolvimento.
 
 Em resumo, as principais decisões técnicas buscaram equilibrar aderência ao desafio, organização do código, boa experiência de uso, persistência local, tratamento de dados externos inconsistentes e facilidade de manutenção.
+
+## Cuidados antes de publicar
+
+Antes de publicar ou enviar o repositório, verifique se arquivos locais e artefatos gerados não foram versionados:
+
+```bash
+git status
+```
+
+Não devem ser enviados:
+
+```txt
+.env
+node_modules/
+dist/
+.wrangler/
+.tanstack/
+```
+
+O `package-lock.json` deve ser versionado, pois o projeto usa npm e é uma aplicação frontend.
