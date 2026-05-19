@@ -229,33 +229,3 @@ dist/
 ```
 
 O `package-lock.json` deve ser versionado, pois o projeto usa npm e é uma aplicação frontend. Isso ajuda a garantir instalações mais consistentes em outros ambientes.
-
-## 📌 Entrega sugerida
-
-Crie uma branch para a implementação:
-
-```bash
-git checkout -b feature/libris-impl
-```
-
-Depois de concluir, abra um Pull Request para a branch `main` do seu próprio repositório.
-
-No corpo do PR, inclua uma breve descrição do que foi feito, por exemplo:
-
-```md
-## Resumo
-
-- Implementa autenticação simulada com sessão persistida.
-- Adiciona busca de livros com Google Books API, debounce, paginação e filtros.
-- Implementa estante virtual persistida com alteração de status.
-- Adiciona tela de detalhes do livro.
-- Inclui tema claro/escuro, estados de loading/erro/vazio e melhorias de acessibilidade.
-- Adiciona testes unitários e testes básicos de acessibilidade.
-
-## Validação
-
-- npm run lint
-- npm run typecheck
-- npm run test
-- npm run build
-```
